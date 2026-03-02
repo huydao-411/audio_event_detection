@@ -1,0 +1,100 @@
+# .gitignore for Audio Event Detection Project
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Data
+data/raw/
+data/processed/
+data/augmented/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+
+# Models
+models/checkpoints/*.pth
+models/saved_models/*.pth
+*.onnx
+*.pt
+
+# Logs
+logs/
+*.log
+runs/
+wandb/
+
+# Results
+results/
+*.png
+*.jpg
+*.jpeg
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Configuration (keep template, ignore local)
+# config_local.yaml
+
+# Datasets (large files)
+*.zip
+*.tar
+*.tar.gz
+*.h5
+*.hdf5
+
+# Compiled
+*.pyc
+*.pyo
+*.pyd
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation
+docs/_build/

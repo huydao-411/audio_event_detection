@@ -1,0 +1,249 @@
+# Audio Event Detection System Configuration
+# Emergency Sound Detection using Transformer Architecture
+
+project:
+  name: "Emergency Audio Event Detection System"
+  version: "1.0.0"
+  description: "Deep learning system for detecting emergency sounds using Transformer architecture"
+
+# Dataset Configuration
+datasets:
+  urbansound8k:
+    path: "data/raw/UrbanSound8K"
+    url: "https://www.kaggle.com/datasets/chrisfilo/urbansound8k"
+    classes:
+      - gun_shot
+      - siren
+      - dog_bark
+      - glass_breaking
+    sample_rate: 22050
+    
+  esc50:
+    path: "data/raw/ESC-50"
+    url: "https://github.com/karolpiczak/ESC-50"
+    classes:
+      - crying_baby  # for scream detection
+      - fireworks    # for explosion detection
+      - crackling_fire
+    sample_rate: 44100
+    
+  fsd50k:
+    path: "data/raw/FSD50K"
+    url: "https://zenodo.org/record/4060432"
+    classes:
+      - explosion
+      - screaming
+      - gunshot
+    sample_rate: 44100
+
+  custom:
+    path: "data/raw/custom"
+    description: "Additional custom recordings for missing classes"
+    sample_rate: 22050
+
+# Target Classes for Emergency Detection
+target_classes:
+  - name: "gunshot"
+    label: 0
+    sources: ["urbansound8k", "fsd50k", "custom"]
+    
+  - name: "explosion"
+    label: 1
+    sources: ["esc50", "fsd50k", "custom"]
+    
+  - name: "siren"
+    label: 2
+    sources: ["urbansound8k", "custom"]
+    
+  - name: "glass_breaking"
+    label: 3
+    sources: ["urbansound8k", "custom"]
+    
+  - name: "scream"
+    label: 4
+    sources: ["esc50", "fsd50k", "custom"]
+    
+  - name: "dog_bark"
+    label: 5
+    sources: ["urbansound8k", "custom"]
+    
+  - name: "fire_crackling"
+    label: 6
+    sources: ["esc50", "custom"]
+
+# Audio Preprocessing
+preprocessing:
+  target_sample_rate: 22050
+  duration: 4.0  # seconds
+  hop_length: 512
+  n_fft: 2048
+  n_mels: 128
+  fmin: 0
+  fmax: 11025
+  window: "hann"
+  
+  # Normalization
+  normalize: true
+  norm_type: "per_sample"  # or "global"
+  
+  # Silence removal
+  remove_silence: true
+  silence_threshold: 0.01
+
+# Data Augmentation
+augmentation:
+  enabled: true
+  techniques:
+    time_stretch:
+      enabled: true
+      rate_range: [0.8, 1.2]
+      
+    pitch_shift:
+      enabled: true
+      n_steps_range: [-2, 2]
+      
+    add_noise:
+      enabled: true
+      noise_level: 0.005
+      
+    time_shift:
+      enabled: true
+      shift_range: [-0.2, 0.2]
+      
+    spec_augment:
+      enabled: true
+      freq_mask_param: 15
+      time_mask_param: 35
+      n_freq_masks: 2
+      n_time_masks: 2
+      
+    mixup:
+      enabled: true
+      alpha: 0.2
+
+# Model Architecture
+model:
+  type: "audio_spectrogram_transformer"  # or "conformer", "wav2vec2"
+  
+  # Audio Spectrogram Transformer (AST) Configuration
+  ast:
+    input_size: [128, 400]  # [n_mels, time_frames]
+    patch_size: [16, 16]
+    embed_dim: 768
+    depth: 12
+    num_heads: 12
+    mlp_ratio: 4.0
+    dropout: 0.1
+    attention_dropout: 0.1
+    
+  # Alternative: Conformer Configuration
+  conformer:
+    input_dim: 128
+    encoder_dim: 256
+    num_layers: 16
+    num_attention_heads: 4
+    feed_forward_expansion_factor: 4
+    conv_expansion_factor: 2
+    conv_kernel_size: 31
+    dropout: 0.1
+    
+  # Output Configuration
+  num_classes: 7
+  use_pretrained: true
+  pretrained_path: "models/ast_audioset_pretrained.pth"
+
+# Training Configuration
+training:
+  # Optimizer
+  optimizer: "adamw"
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+  
+  # Learning Rate Scheduler
+  scheduler: "cosine_annealing"
+  warmup_epochs: 5
+  min_lr: 0.000001
+  
+  # Training Parameters
+  batch_size: 32
+  num_epochs: 100
+  gradient_clip: 1.0
+  mixed_precision: true
+  
+  # Early Stopping
+  early_stopping:
+    enabled: true
+    patience: 15
+    min_delta: 0.001
+    
+  # Class Imbalance Handling
+  class_weights: "balanced"  # or "manual" or null
+  focal_loss:
+    enabled: true
+    alpha: 0.25
+    gamma: 2.0
+  
+  # Validation
+  validation_split: 0.2
+  test_split: 0.1
+  cross_validation: false
+  k_folds: 5
+
+# Evaluation Metrics
+evaluation:
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - map  # Mean Average Precision
+    - auc_roc
+  
+  per_class_metrics: true
+  confusion_matrix: true
+  
+# Inference Configuration
+inference:
+  batch_size: 16
+  confidence_threshold: 0.5
+  top_k: 3
+  
+  # Real-time Processing
+  real_time:
+    enabled: true
+    chunk_duration: 1.0  # seconds
+    overlap: 0.5  # 50% overlap
+    
+  # Post-processing
+  smoothing:
+    enabled: true
+    window_size: 5
+
+# Hardware Configuration
+hardware:
+  device: "cuda"  # or "cpu"
+  num_workers: 4
+  pin_memory: true
+  
+# Logging and Checkpointing
+logging:
+  tensorboard: true
+  wandb:
+    enabled: false
+    project: "audio-event-detection"
+    
+  checkpoint:
+    save_best_only: true
+    save_frequency: 5  # epochs
+    max_checkpoints: 5
+    
+  log_frequency: 10  # batches
+
+# Paths
+paths:
+  data_dir: "data"
+  model_dir: "models"
+  checkpoint_dir: "models/checkpoints"
+  results_dir: "results"
+  logs_dir: "logs"
