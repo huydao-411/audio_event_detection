@@ -161,7 +161,9 @@ class MetricsCalculator:
             Classification report string
         """
         return classification_report(
-            y_true, y_pred,
+            y_true,
+            y_pred,
+            labels=range(len(self.class_names)),
             target_names=self.class_names,
             zero_division=0
         )

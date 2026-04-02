@@ -4,6 +4,7 @@ Comprehensive evaluation with metrics, visualizations, and analysis
 """
 
 import os
+import sys
 import torch
 import numpy as np
 import pandas as pd
@@ -15,8 +16,10 @@ import argparse
 from tqdm import tqdm
 import yaml
 
-import sys
-sys.path.append('../audio_event_detection')
+# Add project root to sys.path to allow importing project modules
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from models.ast_model import AudioSpectrogramTransformer
 from utils.dataset import AudioEventDataset, create_data_loaders
 from utils.metrics import MetricsCalculator
@@ -63,8 +66,14 @@ class ModelEvaluator:
             config_path=str(PROJECT_ROOT / "configs" / "config.yaml")
         )
         
-        checkpoint = torch.load(model_path, map_location=self.device)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
+        state_dict = checkpoint['model_state_dict']
+        
+        # Strip 'module.' prefix if saved with DataParallel (multi-GPU)
+        if list(state_dict.keys())[0].startswith('module.'):
+            state_dict = {k[7:]: v for k, v in state_dict.items()}
+            
+        model.load_state_dict(state_dict)
         model.to(self.device)
         
         return model
@@ -308,24 +317,53 @@ def main():
     )
     
     # Load test data
-    # This is a placeholder - implement actual data loading
-    print("\nNote: Implement data loader creation from processed metadata")
-    print(f"Metadata path: {args.data}")
+    print(f"\nLoading and splitting data from CSV: {args.data}")
+    metadata_df = pd.read_csv(args.data)
+    
+    # Drop rows with NaN labels if any
+    metadata_df = metadata_df.dropna(subset=['label'])
+    metadata_df['label'] = metadata_df['label'].astype(int)
+    
+    # Split: 80% train, 10% val, 10% test (reproducible split)
+    from sklearn.model_selection import train_test_split
+    _, temp_df = train_test_split(metadata_df, test_size=0.2, random_state=42, stratify=metadata_df['label'])
+    _, test_df = train_test_split(temp_df, test_size=0.5, random_state=42, stratify=temp_df['label'])
+    
+    print(f"Test Set Size: {len(test_df)}")
+    
+    # Create test loader
+    config_path = str(PROJECT_ROOT / args.config)
+    with open(config_path, 'r') as f:
+        config_dict = yaml.safe_load(f)
+        
+    batch_size = config_dict['training']['batch_size']
+    num_workers = 0 # Use 0 for Windows local testing
+    pin_memory = config_dict.get('hardware', {}).get('pin_memory', True)
+
+    test_dataset = AudioEventDataset(test_df, config_path, mode='test')
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset, 
+        batch_size=batch_size, 
+        shuffle=False, 
+        num_workers=num_workers, 
+        pin_memory=pin_memory
+    )
     
     # Run evaluation
-    # results = evaluator.evaluate(test_loader)
+    results = evaluator.evaluate(test_loader)
     
     # Print metrics
-    # evaluator.metrics_calculator.print_metrics(results['metrics'])
+    evaluator.metrics_calculator.print_metrics(results['metrics'])
     
     # Print classification report
-    # print("\n" + results['classification_report'])
+    print("\nClassification Report:")
+    print(results['classification_report'])
     
     # Generate plots
-    # evaluator.plot_results(results, os.path.join(args.output, 'plots'))
+    evaluator.plot_results(results, os.path.join(args.output, 'plots'))
     
     # Save results
-    # evaluator.save_results(results, os.path.join(args.output, 'evaluation_results.json'))
+    evaluator.save_results(results, os.path.join(args.output, 'evaluation_results.json'))
     
     print("\n" + "="*60)
     print("Evaluation complete!")

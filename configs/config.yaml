@@ -232,9 +232,9 @@ hardware:
   
 # Logging and Checkpointing
 logging:
-  tensorboard: true
+  tensorboard: false
   wandb:
-    enabled: true
+    enabled: false
     project: "audio-event-detection"
     
   checkpoint:
