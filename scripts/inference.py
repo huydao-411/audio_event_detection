@@ -83,8 +83,12 @@ class AudioEventDetector:
         )
         
         # Load checkpoint
-        checkpoint = torch.load(model_path, map_location=self.device)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
+        state_dict = checkpoint['model_state_dict']
+        # Strip 'module.' prefix if saved with DataParallel (multi-GPU)
+        if list(state_dict.keys())[0].startswith('module.'):
+            state_dict = {k[7:]: v for k, v in state_dict.items()}
+        model.load_state_dict(state_dict)
         model.to(self.device)
         
         return model
