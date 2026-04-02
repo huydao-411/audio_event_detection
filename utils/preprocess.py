@@ -247,7 +247,7 @@ class AudioPreprocessor:
         
         # Create full file paths
         metadata['file_path'] = metadata.apply(
-            lambda row: os.path.join(data_path, 'audio', f"fold{row['fold']}", row['slice_file_name']),
+            lambda row: os.path.join(data_path, 'audio', f"fold{row['fold']}", row['slice_file_name']).replace('\\', '/'),
             axis=1
         )
         return metadata[['file_path', 'target_class', 'label', 'fold']]
@@ -280,7 +280,7 @@ class AudioPreprocessor:
 
         # Create full file paths
         metadata['file_path'] = metadata.apply(
-            lambda row: os.path.join(data_path, 'audio', row['filename']),
+            lambda row: os.path.join(data_path, 'audio', row['filename']).replace('\\', '/'),
             axis=1
         )
         
@@ -359,7 +359,7 @@ class AudioPreprocessor:
             if result is not None:
                 # Save mel-spectrogram
                 output_filename = f"{idx:05d}_{row['target_class']}.npy"
-                output_path = os.path.join(output_dir, output_filename)
+                output_path = os.path.join(output_dir, output_filename).replace('\\', '/')
                 
                 np.save(output_path, result['mel_spectrogram'])
                 

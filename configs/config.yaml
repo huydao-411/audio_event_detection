@@ -19,7 +19,7 @@ datasets:
     sample_rate: 22050
     
   esc50:
-    path: "data/raw/ESC-50"
+    path: "data/raw/ESC-50/ESC-50-master"
     url: "https://github.com/karolpiczak/ESC-50"
     classes:
       - crying_baby  # for scream detection
@@ -70,6 +70,10 @@ target_classes:
   - name: "fire_crackling"
     label: 6
     sources: ["esc50", "custom"]
+
+  - name: "normal"
+    label: 7
+    sources: ["urbansound8k", "esc50", "fsd50k", "custom"]
 
 # Audio Preprocessing
 preprocessing:
@@ -148,7 +152,7 @@ model:
     dropout: 0.1
     
   # Output Configuration
-  num_classes: 7
+  num_classes: 8
   use_pretrained: true
   pretrained_path: "models/ast_audioset_pretrained.pth"
 
@@ -230,7 +234,7 @@ hardware:
 logging:
   tensorboard: true
   wandb:
-    enabled: false
+    enabled: true
     project: "audio-event-detection"
     
   checkpoint:
